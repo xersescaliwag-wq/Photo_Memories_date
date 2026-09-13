@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -95,6 +96,10 @@ class _MyAppState extends State<MyApp> {
   Map<String, String> dateImages = {};
   bool _isUploading = false;
 
+  Timer? _heartbeatTimer;
+  int _serverFailures = 0;
+  bool _serverDownShown = false;
+
   String _getDateKey(DateTime date) {
     // Pad with zeros (e.g., 2025-01-12) for reliable sorting
     final month = date.month.toString().padLeft(2, '0');
@@ -106,6 +111,60 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _loadMemories();
+    _startHeartbeat();
+  }
+
+  @override
+  void dispose() {
+    _heartbeatTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _checkServer(),
+    );
+  }
+
+  Future<void> _checkServer() async {
+    if (_serverDownShown) return;
+    final reachable = await widget.api.ping();
+    if (!mounted) return;
+    if (reachable) {
+      _serverFailures = 0;
+      return;
+    }
+    _serverFailures += 1;
+    if (_serverFailures >= 2 && !_serverDownShown) {
+      _serverDownShown = true;
+      _heartbeatTimer?.cancel();
+      await _showServerDownDialog();
+    }
+  }
+
+  Future<void> _showServerDownDialog() async {
+    await showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('SERVER WAS SHUTDOWN'),
+        content: const Text(
+          'The server is currently offline. Tap OK to close the app.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('OK'),
+            onPressed: () async {
+              await widget.auth.logOut();
+              if (mounted) Navigator.pop(context);
+              exit(0);
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadMemories() async {

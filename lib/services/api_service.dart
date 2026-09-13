@@ -127,6 +127,21 @@ class ApiService {
         .toList();
   }
 
+  Future<bool> ping() async {
+    try {
+      final response = await _client
+          .get(
+            _uri('get_memories.php?user_id=0'),
+            headers: {'ngrok-skip-browser-warning': '1'},
+          )
+          .timeout(const Duration(seconds: 8));
+      return response.statusCode == 200 &&
+          (response.headers['content-type'] ?? '').contains('application/json');
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<MemoryData> uploadMemory(
     int userId,
     String dateKey,
