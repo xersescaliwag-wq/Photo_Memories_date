@@ -43,8 +43,14 @@ class ApiService {
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}/$path');
 
   Map<String, dynamic> _decode(http.Response response) {
-    final body = jsonDecode(utf8.decode(response.bodyBytes));
-    return body is Map<String, dynamic> ? body : {};
+    try {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      return body is Map<String, dynamic> ? body : {};
+    } on FormatException {
+      throw ApiException(
+        'Invalid server response (HTTP ${response.statusCode})',
+      );
+    }
   }
 
   void _ensureSuccess(http.Response response, Map<String, dynamic> data) {
@@ -134,9 +140,8 @@ class ApiService {
             _uri('get_memories.php?user_id=0'),
             headers: {'ngrok-skip-browser-warning': '1'},
           )
-          .timeout(const Duration(seconds: 8));
-      return response.statusCode == 200 &&
-          (response.headers['content-type'] ?? '').contains('application/json');
+          .timeout(const Duration(seconds: 6));
+      return response.statusCode >= 200 && response.statusCode < 500;
     } catch (_) {
       return false;
     }
@@ -210,5 +215,43 @@ class ApiService {
 
     final data = _decode(response);
     _ensureSuccess(response, data);
+  }
+
+  Future<void> deleteAccount(int userId) async {
+    const int maxAttempts = 3;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        final response = await _client
+            .post(
+              _uri('delete_account.php'),
+              headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '1',
+              },
+              body: jsonEncode({
+                'user_id': userId,
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
+
+        final isTransient = response.statusCode == 502 ||
+            response.statusCode == 503 ||
+            response.statusCode == 504;
+        if (isTransient && attempt < maxAttempts) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+
+        final data = _decode(response);
+        _ensureSuccess(response, data);
+        return;
+      } catch (_) {
+        if (attempt < maxAttempts) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          continue;
+        }
+        rethrow;
+      }
+    }
   }
 }

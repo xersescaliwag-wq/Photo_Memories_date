@@ -139,14 +139,14 @@ class ProfileView extends StatelessWidget {
             top: MediaQuery.of(context).padding.top + 10,
             right: 16,
             child: GlassPopover(
-              popoverWidth: 220,
-              settings: const LiquidGlassSettings(chromaticAberration: 0.5, blur: 40),
+              popoverWidth: 200,
+              settings: const LiquidGlassSettings(chromaticAberration: 0.5, blur: 30),
               triggerBuilder: (context, toggle) => GlassButton(
                 onTap: toggle,
                 width: 44,
                 height: 44,
                 icon: const Icon(CupertinoIcons.ellipsis_vertical, color: CupertinoColors.white),
-                style: GlassButtonStyle.transparent,
+                settings: const LiquidGlassSettings(chromaticAberration: 0.5),
               ),
               contentBuilder: (context, close) => _DropdownContent(
                 auth: auth,
@@ -227,6 +227,16 @@ class _DropdownContentState extends State<_DropdownContent> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (!isChangingPassword) ...[
+            const Text(
+              'OPTIONS',
+              style: TextStyle(
+                color: Color(0x66FFFFFF),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 4,
+              ),
+            ),
+            const SizedBox(height: 16),
             GlassMenuItem(
               title: 'PASSWORD',
               icon: const Icon(CupertinoIcons.lock_fill, size: 16, color: CupertinoColors.activeBlue),
@@ -237,6 +247,55 @@ class _DropdownContentState extends State<_DropdownContent> {
               title: 'LOGOUT',
               icon: const Icon(CupertinoIcons.power, size: 16, color: CupertinoColors.systemRed),
               onTap: widget.onLogout,
+            ),
+            const GlassMenuDivider(),
+            GlassMenuItem(
+              title: 'DELETE ACCOUNT',
+              titleStyle: const TextStyle(
+                color: CupertinoColors.systemRed,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1,
+              ),
+              icon: const Icon(CupertinoIcons.delete, size: 18, color: CupertinoColors.systemRed),
+              onTap: () {
+                GlassDialog.show(
+                  context: context,
+                  title: 'Delete Account',
+                  message: 'This action is irreversible. All your memories will be permanently deleted. Continue?',
+                  actions: [
+                    GlassDialogAction(
+                      label: 'CANCEL',
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    GlassDialogAction(
+                      label: 'DELETE',
+                      isDestructive: true,
+                      onPressed: () async {
+                        final bool success = await widget.auth.deleteAccount();
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                        if (!success) {
+                          final message = widget.auth.errorMessage ?? 'Could not delete account';
+                          showCupertinoDialog(
+                            context: context,
+                            builder: (context) => CupertinoAlertDialog(
+                              title: const Text('Delete Account Failed'),
+                              content: Text(message),
+                              actions: [
+                                CupertinoDialogAction(
+                                  child: const Text('OK'),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                );
+              },
             ),
           ] else ...[
             const Text(

@@ -105,6 +105,25 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> deleteAccount() async {
+    _errorMessage = null;
+    if (_userId == null) return false;
+
+    try {
+      await api.deleteAccount(_userId!);
+      await logOut(); // Clear local session
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Could not reach the server';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> changePassword(String oldPassword, String newPassword) async {
     _errorMessage = null;
     if (newPassword.length < 6) {

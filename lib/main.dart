@@ -36,6 +36,22 @@ class _AppRootState extends State<AppRoot> {
   bool _showSplash = true;
 
   @override
+  void initState() {
+    super.initState();
+    widget.auth.addListener(_handleAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.auth.removeListener(_handleAuthChanged);
+    super.dispose();
+  }
+
+  void _handleAuthChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_showSplash) {
       return CupertinoApp(
@@ -136,7 +152,7 @@ class _MyAppState extends State<MyApp> {
       return;
     }
     _serverFailures += 1;
-    if (_serverFailures >= 2 && !_serverDownShown) {
+    if (_serverFailures >= 3 && !_serverDownShown) {
       _serverDownShown = true;
       _heartbeatTimer?.cancel();
       await _showServerDownDialog();
