@@ -1,12 +1,18 @@
 class ApiConfig {
-  // Emulator: useEmulator = true  (10.0.2.2 -> your PC's localhost)
-  // Physical device: useEmulator = false, _lanIp = your PC's LAN IP
+  // ngrok (public):    useNgrok = true   -> https://xxxx.ngrok-free.dev
+  // Same WiFi (LAN):   useNgrok = false  -> http://192.168.100.120
+  // Emulator:          useEmulator = true -> http://10.0.2.2
+  static const bool useNgrok = true;
   static const bool useEmulator = false;
   static const String _lanIp = '192.168.100.120';
+  static const String _ngrokUrl =
+      'https://overplant-underling-closure.ngrok-free.dev/photomemories';
 
   static const String baseUrl = useEmulator
       ? 'http://10.0.2.2/photomemories'
-      : 'http://$_lanIp/photomemories';
+      : useNgrok
+          ? _ngrokUrl
+          : 'http://$_lanIp/photomemories';
 
   static String imageUrl(String filename) => '$baseUrl/uploads/$filename';
 }

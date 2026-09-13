@@ -61,7 +61,10 @@ class ApiService {
     final response = await _client
         .post(
           _uri('register.php'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '1',
+          },
           body: jsonEncode({
             'username': username,
             'email': email,
@@ -84,7 +87,10 @@ class ApiService {
     final response = await _client
         .post(
           _uri('login.php'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '1',
+          },
           body: jsonEncode({
             'identifier': identifier,
             'password': password,
@@ -104,7 +110,10 @@ class ApiService {
 
   Future<List<MemoryData>> getMemories(int userId) async {
     final response = await _client
-        .get(_uri('get_memories.php?user_id=$userId'))
+        .get(
+          _uri('get_memories.php?user_id=$userId'),
+          headers: {'ngrok-skip-browser-warning': '1'},
+        )
         .timeout(const Duration(seconds: 15));
 
     final data = _decode(response);
@@ -124,6 +133,7 @@ class ApiService {
     File image,
   ) async {
     final request = http.MultipartRequest('POST', _uri('upload.php'))
+      ..headers['ngrok-skip-browser-warning'] = '1'
       ..fields['user_id'] = '$userId'
       ..fields['memory_date'] = dateKey
       ..files.add(await http.MultipartFile.fromPath('file', image.path));
@@ -148,7 +158,10 @@ class ApiService {
     final response = await _client
         .post(
           _uri('delete_memory.php'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '1',
+          },
           body: jsonEncode({
             'user_id': userId,
             'memory_date': dateKey,
@@ -168,7 +181,10 @@ class ApiService {
     final response = await _client
         .post(
           _uri('change_password.php'),
-          headers: {'Content-Type': 'application/json'},
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': '1',
+          },
           body: jsonEncode({
             'user_id': userId,
             'old_password': oldPassword,
