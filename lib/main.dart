@@ -128,6 +128,7 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+
   Future<void> _deleteMemory(String dateKey) async {
     final userId = widget.auth.userId;
     if (userId == null) return;
