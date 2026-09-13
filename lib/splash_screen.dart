@@ -25,6 +25,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       duration: const Duration(milliseconds: 3000),
     );
 
+
     // 1. Initial burst and settle
     _revealAnimation = CurvedAnimation(
       parent: _controller,
