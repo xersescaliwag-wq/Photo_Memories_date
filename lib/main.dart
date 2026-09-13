@@ -8,6 +8,7 @@ import 'upload_memory_screen.dart';
 import 'history_view.dart';
 import 'login_screen.dart';
 import 'profile_view.dart';
+import 'splash_screen.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 
@@ -31,8 +32,24 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> {
+  bool _showSplash = true;
+
   @override
   Widget build(BuildContext context) {
+    if (_showSplash) {
+      return CupertinoApp(
+        theme: const CupertinoThemeData(brightness: Brightness.dark),
+        debugShowCheckedModeBanner: false,
+        home: SplashScreen(
+          onComplete: () {
+            setState(() {
+              _showSplash = false;
+            });
+          },
+        ),
+      );
+    }
+
     return CupertinoApp(
       theme: const CupertinoThemeData(brightness: Brightness.dark),
       debugShowCheckedModeBanner: false,
