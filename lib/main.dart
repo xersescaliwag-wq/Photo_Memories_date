@@ -106,7 +106,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   int selectedIndex = 0;
   DateTime selectedDate = DateTime.now();
   Map<String, String> dateImages = {};
@@ -114,7 +114,9 @@ class _MyAppState extends State<MyApp> {
 
   Timer? _heartbeatTimer;
   int _serverFailures = 0;
+  DateTime? _firstFailureAt;
   bool _serverDownShown = false;
+  bool _appForegrounded = true;
 
   String _getDateKey(DateTime date) {
     // Pad with zeros (e.g., 2025-01-12) for reliable sorting
@@ -126,12 +128,29 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMemories();
     _startHeartbeat();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isForeground = state == AppLifecycleState.resumed;
+    _appForegrounded = isForeground;
+    if (!isForeground) {
+      _serverFailures = 0;
+      _firstFailureAt = null;
+    } else if (!_serverDownShown) {
+      _serverFailures = 0;
+      _firstFailureAt = null;
+      _startHeartbeat();
+      _checkServer();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _heartbeatTimer?.cancel();
     super.dispose();
   }
@@ -145,15 +164,21 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkServer() async {
-    if (_serverDownShown) return;
-    final reachable = await widget.api.ping();
-    if (!mounted) return;
+    if (_serverDownShown || !_appForegrounded) return;
+    final reachable = await widget.api.ping(userId: widget.auth.userId);
+    if (!mounted || !_appForegrounded) return;
     if (reachable) {
       _serverFailures = 0;
+      _firstFailureAt = null;
       return;
     }
     _serverFailures += 1;
-    if (_serverFailures >= 3 && !_serverDownShown) {
+    _firstFailureAt ??= DateTime.now();
+    final elapsed =
+        DateTime.now().difference(_firstFailureAt!).inSeconds;
+    if (_serverFailures >= 3 &&
+        elapsed >= 30 &&
+        !_serverDownShown) {
       _serverDownShown = true;
       _heartbeatTimer?.cancel();
       await _showServerDownDialog();
@@ -176,8 +201,9 @@ class _MyAppState extends State<MyApp> {
             onPressed: () {
               Navigator.pop(context);
               _serverFailures = 0;
+              _firstFailureAt = null;
               _serverDownShown = false;
-              if (mounted) {
+              if (mounted && _appForegrounded) {
                 _startHeartbeat();
                 _checkServer();
               }

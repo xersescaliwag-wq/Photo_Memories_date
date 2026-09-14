@@ -133,11 +133,11 @@ class ApiService {
         .toList();
   }
 
-  Future<bool> ping() async {
+  Future<bool> ping({int? userId}) async {
     try {
       await _client
           .get(
-            _uri('get_memories.php?user_id=0'),
+            _uri('get_memories.php?user_id=${userId ?? 0}'),
             headers: {'ngrok-skip-browser-warning': '1'},
           )
           .timeout(const Duration(seconds: 6));

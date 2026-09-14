@@ -28,7 +28,7 @@ class FakeApiService extends ApiService {
   Future<void> deleteMemory(int userId, String dateKey) async {}
 
   @override
-  Future<bool> ping() async => true;
+  Future<bool> ping({int? userId}) async => true;
 
   @override
   Future<void> changePassword(
