@@ -15,9 +15,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool isLogin = true;
   bool _obscurePassword = true;
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
   bool isLoading = false;
 
   @override
@@ -25,17 +29,31 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleAuth() async {
     if (!mounted) return;
     setState(() => isLoading = true);
-    
+
     bool success;
+
     if (isLogin) {
-      success = await widget.auth.logIn(_emailController.text, _passwordController.text);
+      success = await widget.auth.logIn(
+        _emailController.text,
+        _passwordController.text,
+      );
     } else {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        setState(() {
+          isLoading = false;
+        });
+
+        _showError('Passwords do not match.');
+        return;
+      }
+
       success = await widget.auth.register(
         _usernameController.text,
         _emailController.text,
@@ -44,11 +62,29 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (!mounted) return;
+
     setState(() => isLoading = false);
-    
+
     if (success) {
       widget.onLoggedIn();
     }
+  }
+
+  void _showError(String message) {
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Registration Error'),
+        content: Text(message),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -58,14 +94,13 @@ class _LoginScreenState extends State<LoginScreen> {
       background: const Stack(
         fit: StackFit.expand,
         children: [
-          // Ambient Glows
           Positioned(
             top: -100,
             left: -100,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x26007AFF), // activeBlue with 0.15 alpha
+                color: Color(0x26007AFF),
               ),
               child: SizedBox(
                 width: 300,
@@ -79,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x1A64FFDA), // teal with 0.1 alpha
+                color: Color(0x1A64FFDA),
               ),
               child: SizedBox(
                 width: 250,
@@ -92,17 +127,20 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 32.0,
+            vertical: 40.0,
+          ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 
-                         MediaQuery.of(context).padding.top - 
-                         MediaQuery.of(context).padding.bottom - 80,
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom -
+                  80,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // App Logo (clean, no glow or frame)
                 Image.asset(
                   'assets/logo.png',
                   width: 140,
@@ -110,8 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 40),
-                
-                // Hero Text
+
                 const Text(
                   'PHOTO',
                   style: TextStyle(
@@ -132,7 +169,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 60),
 
-                // Modular Glass Input Fields
                 if (!isLogin) ...[
                   _buildGlassField(
                     controller: _usernameController,
@@ -141,31 +177,54 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                 ],
+
                 _buildGlassField(
                   controller: _emailController,
                   placeholder: isLogin ? 'USERNAME' : 'EMAIL ADDRESS',
-                  icon: isLogin ? CupertinoIcons.person : CupertinoIcons.mail,
-                  keyboardType: isLogin ? TextInputType.text : TextInputType.emailAddress,
+                  icon: isLogin
+                      ? CupertinoIcons.person
+                      : CupertinoIcons.mail,
+                  keyboardType: isLogin
+                      ? TextInputType.text
+                      : TextInputType.emailAddress,
                 ),
+
                 const SizedBox(height: 16),
+
                 _buildGlassField(
                   controller: _passwordController,
                   placeholder: 'SECURE PASSWORD',
                   icon: CupertinoIcons.lock,
                   obscureText: _obscurePassword,
                   suffix: GestureDetector(
-                    onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                    onTap: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                     child: Padding(
                       padding: const EdgeInsets.only(right: 16),
                       child: Icon(
-                        _obscurePassword ? CupertinoIcons.eye_slash : CupertinoIcons.eye,
+                        _obscurePassword
+                            ? CupertinoIcons.eye_slash
+                            : CupertinoIcons.eye,
                         size: 20,
                         color: const Color(0x66FFFFFF),
                       ),
                     ),
                   ),
                 ),
-                
+
+                if (!isLogin) ...[
+                  const SizedBox(height: 16),
+                  _buildGlassField(
+                    controller: _confirmPasswordController,
+                    placeholder: 'CONFIRM PASSWORD',
+                    icon: CupertinoIcons.lock,
+                    obscureText: _obscurePassword,
+                  ),
+                ],
+
                 if (widget.auth.errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -177,26 +236,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
-                
+
                 const SizedBox(height: 48),
 
-                // The "Crystal" Primary Action Button
                 GlassButton.custom(
-                  key: ValueKey('auth_button_$isLogin'), // Help preserve/rebuild correctly
+                  key: ValueKey('auth_button_$isLogin'),
                   onTap: isLoading ? () {} : _handleAuth,
                   width: double.infinity,
                   height: 64,
                   quality: GlassQuality.premium,
-                  shape: const LiquidRoundedSuperellipse(borderRadius: 100),
+                  shape: const LiquidRoundedSuperellipse(
+                    borderRadius: 100,
+                  ),
                   settings: const LiquidGlassSettings(
                     chromaticAberration: 1.0,
                     blur: 30,
                   ),
                   child: Center(
                     child: isLoading
-                        ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+                        ? const CupertinoActivityIndicator(
+                            color: CupertinoColors.white,
+                          )
                         : Text(
-                            isLogin ? 'ENTER GALLERY' : 'START COLLECTION',
+                            isLogin
+                                ? 'ENTER GALLERY'
+                                : 'START COLLECTION',
                             style: const TextStyle(
                               color: CupertinoColors.white,
                               fontSize: 14,
@@ -209,21 +273,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 24),
 
-                // Seamless Switch Button
                 GestureDetector(
                   onTap: () {
                     setState(() {
                       isLogin = !isLogin;
-                      // Optional: Clear fields when switching
-                      // _emailController.clear();
-                      // _passwordController.clear();
                     });
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12.0,
+                      horizontal: 24.0,
+                    ),
                     child: Text(
-                      isLogin ? "NEW MEMBER?" : "EXISTING MEMBER?",
+                      isLogin
+                          ? 'NEW MEMBER?'
+                          : 'EXISTING MEMBER?',
                       style: const TextStyle(
                         color: Color(0x80FFFFFF),
                         fontSize: 11,
@@ -251,13 +316,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return AdaptiveGlass(
       quality: GlassQuality.premium,
-      shape: const LiquidRoundedSuperellipse(borderRadius: 100),
+      shape: const LiquidRoundedSuperellipse(
+        borderRadius: 100,
+      ),
       settings: const LiquidGlassSettings(
         chromaticAberration: 0.3,
         blur: 20,
       ),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 4,
+        ),
         child: CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
@@ -275,7 +345,11 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14),
           prefix: Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Icon(icon, size: 16, color: const Color(0x66FFFFFF)),
+            child: Icon(
+              icon,
+              size: 16,
+              color: const Color(0x66FFFFFF),
+            ),
           ),
           suffix: suffix,
           decoration: null,
