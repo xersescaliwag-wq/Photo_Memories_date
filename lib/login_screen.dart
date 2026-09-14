@@ -3,7 +3,11 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.auth, required this.onLoggedIn});
+  const LoginScreen({
+    super.key,
+    required this.auth,
+    required this.onLoggedIn,
+  });
 
   final AuthService auth;
   final VoidCallback onLoggedIn;
@@ -16,11 +20,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isLogin = true;
   bool _obscurePassword = true;
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _emailController =
+  TextEditingController();
+
+  final TextEditingController _passwordController =
+  TextEditingController();
+
+  final TextEditingController _usernameController =
+  TextEditingController();
 
   bool isLoading = false;
 
@@ -29,12 +36,12 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _usernameController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleAuth() async {
     if (!mounted) return;
+
     setState(() => isLoading = true);
 
     bool success;
@@ -45,15 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
     } else {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        setState(() {
-          isLoading = false;
-        });
-
-        _showError('Passwords do not match.');
-        return;
-      }
-
       success = await widget.auth.register(
         _usernameController.text,
         _emailController.text,
@@ -70,37 +68,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showError(String message) {
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: const Text('Registration Error'),
-        content: Text(message),
-        actions: [
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            child: const Text('OK'),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return GlassScaffold(
-      backgroundColor: const Color(0xFF000000),
+      // BLACK BACKGROUND
+      backgroundColor: const Color(0xFF05050A),
+
       background: const Stack(
         fit: StackFit.expand,
         children: [
+          // BLUE AMBIENT GLOW
           Positioned(
             top: -100,
             left: -100,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x26007AFF),
+                color: Color(0x33007AFF),
               ),
               child: SizedBox(
                 width: 300,
@@ -108,13 +92,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+
+          // PINK AMBIENT GLOW
           Positioned(
             bottom: -50,
             right: -50,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x1A64FFDA),
+                color: Color(0x33FF2D92),
               ),
               child: SizedBox(
                 width: 250,
@@ -124,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -141,14 +128,17 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // APP LOGO
                 Image.asset(
                   'assets/logo.png',
                   width: 140,
                   height: 140,
                   fit: BoxFit.contain,
                 ),
+
                 const SizedBox(height: 40),
 
+                // HERO TEXT
                 const Text(
                   'PHOTO',
                   style: TextStyle(
@@ -158,6 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     letterSpacing: 12,
                   ),
                 ),
+
                 const Text(
                   'Memories',
                   style: TextStyle(
@@ -167,8 +158,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     letterSpacing: -2,
                   ),
                 ),
+
                 const SizedBox(height: 60),
 
+                // FULL NAME - REGISTER ONLY
                 if (!isLogin) ...[
                   _buildGlassField(
                     controller: _usernameController,
@@ -178,9 +171,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
 
+                // USERNAME / EMAIL
                 _buildGlassField(
                   controller: _emailController,
-                  placeholder: isLogin ? 'USERNAME' : 'EMAIL ADDRESS',
+                  placeholder:
+                  isLogin ? 'USERNAME' : 'EMAIL ADDRESS',
                   icon: isLogin
                       ? CupertinoIcons.person
                       : CupertinoIcons.mail,
@@ -191,6 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 16),
 
+                // PASSWORD
                 _buildGlassField(
                   controller: _passwordController,
                   placeholder: 'SECURE PASSWORD',
@@ -215,16 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                if (!isLogin) ...[
-                  const SizedBox(height: 16),
-                  _buildGlassField(
-                    controller: _confirmPasswordController,
-                    placeholder: 'CONFIRM PASSWORD',
-                    icon: CupertinoIcons.lock,
-                    obscureText: _obscurePassword,
-                  ),
-                ],
-
+                // ERROR MESSAGE
                 if (widget.auth.errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(
@@ -239,6 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 48),
 
+                // ENTER GALLERY / START COLLECTION
                 GlassButton.custom(
                   key: ValueKey('auth_button_$isLogin'),
                   onTap: isLoading ? () {} : _handleAuth,
@@ -255,24 +243,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Center(
                     child: isLoading
                         ? const CupertinoActivityIndicator(
-                            color: CupertinoColors.white,
-                          )
+                      color: CupertinoColors.white,
+                    )
                         : Text(
-                            isLogin
-                                ? 'ENTER GALLERY'
-                                : 'START COLLECTION',
-                            style: const TextStyle(
-                              color: CupertinoColors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 4,
-                            ),
-                          ),
+                      isLogin
+                          ? 'ENTER GALLERY'
+                          : 'START COLLECTION',
+                      style: const TextStyle(
+                        color: CupertinoColors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 4,
+                      ),
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 24),
 
+                // SWITCH LOGIN / REGISTER
                 GestureDetector(
                   onTap: () {
                     setState(() {
@@ -287,8 +276,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       isLogin
-                          ? 'NEW MEMBER?'
-                          : 'EXISTING MEMBER?',
+                          ? "NEW MEMBER?"
+                          : "EXISTING MEMBER?",
                       style: const TextStyle(
                         color: Color(0x80FFFFFF),
                         fontSize: 11,
@@ -342,7 +331,9 @@ class _LoginScreenState extends State<LoginScreen> {
             fontSize: 15,
             fontWeight: FontWeight.w400,
           ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            vertical: 14,
+          ),
           prefix: Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Icon(
@@ -355,7 +346,9 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: null,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          cursorColor: CupertinoColors.activeBlue,
+
+          // PINK CURSOR
+          cursorColor: const Color(0xFFFF4FA3),
         ),
       ),
     );
