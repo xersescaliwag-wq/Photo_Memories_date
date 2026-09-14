@@ -141,7 +141,7 @@ class ApiService {
             headers: {'ngrok-skip-browser-warning': '1'},
           )
           .timeout(const Duration(seconds: 6));
-      return response.statusCode >= 200 && response.statusCode < 500;
+      return response.statusCode >= 200 && response.statusCode < 300;
     } catch (_) {
       return false;
     }
