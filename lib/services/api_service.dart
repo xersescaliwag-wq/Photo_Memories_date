@@ -135,13 +135,13 @@ class ApiService {
 
   Future<bool> ping() async {
     try {
-      final response = await _client
+      await _client
           .get(
             _uri('get_memories.php?user_id=0'),
             headers: {'ngrok-skip-browser-warning': '1'},
           )
           .timeout(const Duration(seconds: 6));
-      return response.statusCode >= 200 && response.statusCode < 300;
+      return true;
     } catch (_) {
       return false;
     }

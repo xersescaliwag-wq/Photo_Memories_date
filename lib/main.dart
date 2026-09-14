@@ -137,6 +137,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(
       const Duration(seconds: 15),
       (_) => _checkServer(),
@@ -166,12 +167,25 @@ class _MyAppState extends State<MyApp> {
       builder: (context) => CupertinoAlertDialog(
         title: const Text('SERVER WAS SHUTDOWN'),
         content: const Text(
-          'The server is currently offline. Tap OK to close the app.',
+          'The server is currently offline. You can try again or close the app.',
         ),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
-            child: const Text('OK'),
+            child: const Text('Try Again'),
+            onPressed: () {
+              Navigator.pop(context);
+              _serverFailures = 0;
+              _serverDownShown = false;
+              if (mounted) {
+                _startHeartbeat();
+                _checkServer();
+              }
+            },
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            child: const Text('Close App'),
             onPressed: () async {
               await widget.auth.logOut();
               if (mounted) Navigator.pop(context);
