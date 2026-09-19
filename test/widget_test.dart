@@ -57,6 +57,7 @@ void main() {
         child: AppRoot(auth: auth, api: FakeApiService()),
       ),
     );
+
     await tester.pump();
 
     expect(auth.isLoggedIn, isFalse);
