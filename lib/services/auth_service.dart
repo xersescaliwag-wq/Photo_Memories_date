@@ -38,7 +38,7 @@ class AuthService extends ChangeNotifier {
 
   Future<bool> logIn(String identifier, String password) async {
     _errorMessage = null;
-    await Future.delayed(const Duration(milliseconds: 800)); // Smooth feel
+    await Future.delayed(const Duration(milliseconds: 800));
 
     try {
       final user = await api.login(identifier, password);
@@ -60,23 +60,47 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  Future<bool> register(String username, String email, String password) async {
+  // --- REGISTRATION FLOW WITH OTP ---
+
+  Future<bool> requestRegistrationCode(String username, String email, String password) async {
     _errorMessage = null;
     if (username.isEmpty || email.isEmpty || password.isEmpty) {
       _errorMessage = 'Please fill all fields';
       notifyListeners();
       return false;
     }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      _errorMessage = 'Please enter a valid email address';
+      notifyListeners();
+      return false;
+    }
+
     if (password.length < 6) {
       _errorMessage = 'Password must be at least 6 characters';
       notifyListeners();
       return false;
     }
 
-    await Future.delayed(const Duration(milliseconds: 800));
-
     try {
-      final user = await api.register(username, email, password);
+      await api.requestRegistrationCode(username, email, password);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Could not reach the server';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> verifyRegistrationAndCreate(String username, String email, String password, String code) async {
+    _errorMessage = null;
+    try {
+      final user = await api.verifyRegistrationCode(username, email, password, code);
       _isLoggedIn = true;
       _userId = user.userId;
       _currentUsername = user.username;
@@ -89,7 +113,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (_) {
-      _errorMessage = 'Could not reach the server';
+      _errorMessage = 'Registration verification failed';
       notifyListeners();
       return false;
     }
@@ -105,13 +129,63 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // PASSWORD RESET FLOW
+  
+  Future<bool> requestResetCode(String email) async {
+    _errorMessage = null;
+    try {
+      await api.requestPasswordReset(email);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Could not reach the server';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> verifyCode(String email, String code) async {
+    _errorMessage = null;
+    try {
+      await api.verifyResetCode(email, code);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Verification failed';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updatePasswordWithCode(String email, String code, String newPassword) async {
+    _errorMessage = null;
+    try {
+      await api.updatePasswordWithCode(email, code, newPassword);
+      return true;
+    } on ApiException catch (e) {
+      _errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Password update failed';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deleteAccount() async {
     _errorMessage = null;
     if (_userId == null) return false;
 
     try {
       await api.deleteAccount(_userId!);
-      await logOut(); // Clear local session
+      await logOut();
       return true;
     } on ApiException catch (e) {
       _errorMessage = e.message;

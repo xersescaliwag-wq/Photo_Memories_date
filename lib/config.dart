@@ -1,30 +1,39 @@
+enum AppEnvironment { development, production }
+
 class ApiConfig {
-  // Default server settings
-  static const bool useNgrok = true;
-  static const bool useEmulator = false;
+  // Set the current environment here
+  static const AppEnvironment environment = AppEnvironment.production;
 
+  static const String _prodUrl = 'https://celllaunch.shop/api';
   static const String _lanIp = '192.168.100.120';
-
-  static const String _ngrokUrl =
-      'https://overplant-underling-closure.ngrok-free.dev/photomemories';
 
   // Server URL entered by the user.
   static String? _customBaseUrl;
 
   static String get baseUrl {
+    // 1. Priority: User Input (for manual testing/overrides)
     if (_customBaseUrl != null) {
       return _customBaseUrl!;
     }
 
-    return useEmulator
-        ? 'http://10.0.2.2/photomemories'
-        : useNgrok
-            ? _ngrokUrl
-            : 'http://$_lanIp/photomemories';
+    // 2. Production URL
+    if (environment == AppEnvironment.production) {
+      return _prodUrl;
+    }
+
+    // 3. Development/LAN
+    return 'http://$_lanIp/photomemories';
   }
 
   static void setServerIp(String ip) {
-    _customBaseUrl = 'http://$ip/photomemories';
+    if (ip.startsWith('http://') || ip.startsWith('https://')) {
+      _customBaseUrl = ip.endsWith('/') ? ip.substring(0, ip.length - 1) : ip;
+    } else {
+      // Default to HTTPS for production-like domains, HTTP for IPs
+      final isIp = RegExp(r'^\d+\.\d+\.\d+\.\d+').hasMatch(ip);
+      final protocol = isIp ? 'http://' : 'https://';
+      _customBaseUrl = '$protocol$ip/api';
+    }
   }
 
   static void clearCustomServer() {

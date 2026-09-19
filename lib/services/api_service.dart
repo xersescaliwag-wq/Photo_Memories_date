@@ -59,26 +59,35 @@ class ApiService {
     }
   }
 
-  Future<AuthUser> register(
-    String username,
-    String email,
-    String password,
-  ) async {
-    final response = await _client
-        .post(
-          _uri('register.php'),
-          headers: {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '1',
-          },
-          body: jsonEncode({
-            'username': username,
-            'email': email,
-            'password': password,
-          }),
-        )
-        .timeout(const Duration(seconds: 15));
+  // --- REGISTRATION FLOW ---
 
+  Future<void> requestRegistrationCode(String username, String email, String password) async {
+    final response = await _client.post(
+      _uri('register.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'action': 'request',
+        'username': username,
+        'email': email,
+        'password': password
+      }),
+    ).timeout(const Duration(seconds: 15));
+    _ensureSuccess(response, _decode(response));
+  }
+
+  Future<AuthUser> verifyRegistrationCode(String username, String email, String password, String code) async {
+    final response = await _client.post(
+      _uri('register.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'action': 'verify',
+        'username': username,
+        'email': email,
+        'password': password,
+        'code': code
+      }),
+    ).timeout(const Duration(seconds: 15));
+    
     final data = _decode(response);
     _ensureSuccess(response, data);
     final user = data['user'] as Map<String, dynamic>;
@@ -89,13 +98,14 @@ class ApiService {
     );
   }
 
+  // --- LOGIN FLOW ---
+
   Future<AuthUser> login(String identifier, String password) async {
     final response = await _client
         .post(
           _uri('login.php'),
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '1',
           },
           body: jsonEncode({
             'identifier': identifier,
@@ -118,7 +128,6 @@ class ApiService {
     final response = await _client
         .get(
           _uri('get_memories.php?user_id=$userId'),
-          headers: {'ngrok-skip-browser-warning': '1'},
         )
         .timeout(const Duration(seconds: 15));
 
@@ -137,8 +146,7 @@ class ApiService {
     try {
       final response = await _client
           .get(
-            _uri('get_memories.php?user_id=0'),
-            headers: {'ngrok-skip-browser-warning': '1'},
+            _uri('ping.php'),
           )
           .timeout(const Duration(seconds: 6));
       return response.statusCode >= 200 && response.statusCode < 300;
@@ -153,7 +161,6 @@ class ApiService {
     File image,
   ) async {
     final request = http.MultipartRequest('POST', _uri('upload.php'))
-      ..headers['ngrok-skip-browser-warning'] = '1'
       ..fields['user_id'] = '$userId'
       ..fields['memory_date'] = dateKey
       ..files.add(await http.MultipartFile.fromPath('file', image.path));
@@ -180,7 +187,6 @@ class ApiService {
           _uri('delete_memory.php'),
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '1',
           },
           body: jsonEncode({
             'user_id': userId,
@@ -193,6 +199,40 @@ class ApiService {
     _ensureSuccess(response, data);
   }
 
+  // PASSWORD RESET API METHODS
+  
+  Future<void> requestPasswordReset(String email) async {
+    final response = await _client.post(
+      _uri('reset.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'action': 'request', 'email': email}),
+    ).timeout(const Duration(seconds: 15));
+    _ensureSuccess(response, _decode(response));
+  }
+
+  Future<void> verifyResetCode(String email, String code) async {
+    final response = await _client.post(
+      _uri('reset.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'action': 'verify', 'email': email, 'code': code}),
+    ).timeout(const Duration(seconds: 15));
+    _ensureSuccess(response, _decode(response));
+  }
+
+  Future<void> updatePasswordWithCode(String email, String code, String newPassword) async {
+    final response = await _client.post(
+      _uri('reset.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'action': 'update', 
+        'email': email, 
+        'code': code, 
+        'password': newPassword
+      }),
+    ).timeout(const Duration(seconds: 15));
+    _ensureSuccess(response, _decode(response));
+  }
+
   Future<void> changePassword(
     int userId,
     String oldPassword,
@@ -203,7 +243,6 @@ class ApiService {
           _uri('change_password.php'),
           headers: {
             'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': '1',
           },
           body: jsonEncode({
             'user_id': userId,
@@ -226,7 +265,6 @@ class ApiService {
               _uri('delete_account.php'),
               headers: {
                 'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': '1',
               },
               body: jsonEncode({
                 'user_id': userId,

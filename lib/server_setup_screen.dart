@@ -141,6 +141,9 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: AdaptiveGlass(
+              shape: const LiquidRoundedSuperellipse(
+                borderRadius: 28,
+              ),
               settings: const LiquidGlassSettings(
                 chromaticAberration: 1,
                 blur: 25,
@@ -152,7 +155,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(
-                      CupertinoIcons.server_rack,
+                      CupertinoIcons.cloud_fill,
                       size: 64,
                       color: CupertinoColors.white,
                     ),
@@ -204,7 +207,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                     ),
                     const SizedBox(height: 20),
                     GlassButton.custom(
-                      onTap: _isConnecting ? null : _connectToServer,
+                      onTap: _isConnecting ? () {} : _connectToServer,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 28,

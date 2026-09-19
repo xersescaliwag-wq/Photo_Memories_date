@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -138,7 +140,7 @@ class _MyAppState extends State<MyApp> {
 
   void _startHeartbeat() {
     _heartbeatTimer = Timer.periodic(
-      const Duration(seconds: 15),
+      const Duration(seconds: 30),
       (_) => _checkServer(),
     );
   }
@@ -152,7 +154,7 @@ class _MyAppState extends State<MyApp> {
       return;
     }
     _serverFailures += 1;
-    if (_serverFailures >= 3 && !_serverDownShown) {
+    if (_serverFailures >= 10 && !_serverDownShown) {
       _serverDownShown = true;
       _heartbeatTimer?.cancel();
       await _showServerDownDialog();
@@ -175,7 +177,9 @@ class _MyAppState extends State<MyApp> {
             onPressed: () async {
               await widget.auth.logOut();
               if (mounted) Navigator.pop(context);
-              exit(0);
+              // In a production app, instead of exit(0), 
+              // we should navigate back to the server setup or show an error state.
+              // For now, we will just logout and stay on the login screen.
             },
           ),
         ],
@@ -186,16 +190,37 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadMemories() async {
     final userId = widget.auth.userId;
     if (userId == null) return;
+
+    // 1. Load from Cache first (Instant)
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('cached_memories_$userId');
+    if (cached != null) {
+      final Map<String, dynamic> decoded = jsonDecode(cached);
+      if (mounted) {
+        setState(() {
+          dateImages = decoded.cast<String, String>();
+        });
+      }
+    }
+
+    // 2. Fetch fresh data from Server (Update)
     try {
       final memories = await widget.api.getMemories(userId);
       if (!mounted) return;
+
+      final newDateImages = {
+        for (final memory in memories) memory.memoryDate: memory.imageUrl,
+      };
+
       setState(() {
-        dateImages = {
-          for (final memory in memories) memory.memoryDate: memory.imageUrl,
-        };
+        dateImages = newDateImages;
       });
+
+      // 3. Save fresh data to Cache
+      await prefs.setString('cached_memories_$userId', jsonEncode(newDateImages));
     } catch (e) {
-      if (mounted) _showError('Could not load memories', e.toString());
+      // If offline, we still have the cached images shown
+      debugPrint('Sync failed: $e');
     }
   }
 
@@ -213,6 +238,9 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         dateImages[memory.memoryDate] = memory.imageUrl;
       });
+      // Update Cache immediately after upload
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_memories_$userId', jsonEncode(dateImages));
     } catch (e) {
       if (mounted) _showError('Upload failed', e.toString());
     } finally {
@@ -230,6 +258,9 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         dateImages.remove(dateKey);
       });
+      // Update Cache immediately after delete
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_memories_$userId', jsonEncode(dateImages));
     } catch (e) {
       if (mounted) _showError('Delete failed', e.toString());
     }
