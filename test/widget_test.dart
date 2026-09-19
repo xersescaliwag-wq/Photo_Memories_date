@@ -8,18 +8,10 @@ import 'package:photomemoriesdate/services/auth_service.dart';
 
 class FakeApiService extends ApiService {
   @override
-  Future<void> requestRegistrationCode(
+  Future<AuthUser> register(
     String username,
     String email,
     String password,
-  ) async {}
-
-  @override
-  Future<AuthUser> verifyRegistrationCode(
-    String username,
-    String email,
-    String password,
-    String code,
   ) async {
     return const AuthUser(userId: 1, username: 'Geof', email: 'geof@mail.com');
   }
@@ -57,7 +49,6 @@ void main() {
         child: AppRoot(auth: auth, api: FakeApiService()),
       ),
     );
-
     await tester.pump();
 
     expect(auth.isLoggedIn, isFalse);
@@ -65,21 +56,14 @@ void main() {
     expect(find.text('ENTER GALLERY'), findsOneWidget);
   });
 
-  test('Register workflow initiates and verifies correctly', () async {
+  test('Register logs the user in through the API', () async {
     SharedPreferences.setMockInitialValues({});
     final AuthService auth = AuthService(api: FakeApiService());
     await auth.init();
 
     expect(auth.isLoggedIn, isFalse);
-    
-    // Step 1: Request code
-    final bool requestOk = await auth.requestRegistrationCode('Geof', 'geof@mail.com', 'secret123');
-    expect(requestOk, isTrue);
-    expect(auth.isLoggedIn, isFalse);
-
-    // Step 2: Verify code
-    final bool verifyOk = await auth.verifyRegistrationAndCreate('Geof', 'geof@mail.com', 'secret123', '123456');
-    expect(verifyOk, isTrue);
+    final bool ok = await auth.register('Geof', 'geof@mail.com', 'secret123');
+    expect(ok, isTrue);
     expect(auth.isLoggedIn, isTrue);
     expect(auth.userId, 1);
   });
