@@ -1,0 +1,13 @@
+# Disable directory browsing
+Options -Indexes
+
+# Protect config.php and smtp.php
+<FilesMatch "^(config|smtp)\.php$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+# Allow CORS
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE, PUT"
+Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
